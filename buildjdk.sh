@@ -22,7 +22,7 @@ export CFLAGS+=" -DLE_STANDALONE -fPIE -fPIC" # -I$FREETYPE_DIR -I$CUPS_DI
 # cp -R /usr/include/fontconfig $ANDROID_INCLUDE/
 
 if [ "$BUILD_IOS" != "1" ]; then
-  export CFLAGS+=" -O3"
+  export CFLAGS+=" -O3 -D__ANDROID__"
 
   ln -s -f /usr/include/X11 $ANDROID_INCLUDE/
   ln -s -f /usr/include/fontconfig $ANDROID_INCLUDE/
@@ -51,8 +51,20 @@ fi
 # fix building libjawt
 ln -s -f $CUPS_DIR/cups $ANDROID_INCLUDE/
 
+#FREEMARKER=$PWD/freemarker-2.3.8/lib/freemarker.jar
+
 cd openjdk
-#rm -rf build
+
+# Apply patches
+if [ "$BUILD_IOS" != "1" ]; then
+  git reset --hard
+  git apply --reject --whitespace=fix ../patches/jdk8u_android.diff || echo "git apply failed (universal patch set)"
+  if [ "$TARGET_JDK" != "aarch32" ]; then
+    git apply --reject --whitespace=fix ../patches/jdk8u_android_main.diff || echo "git apply failed (main non-universal patch set)"
+  else
+    git apply --reject --whitespace=fix ../patches/jdk8u_android_aarch32.diff || echo "git apply failed (aarch32 non-universal patch set)"
+  fi #TODO: make separate aarch32 patch set
+fi
 
 #   --with-extra-cxxflags="$CXXFLAGS -Dchar16_t=uint16_t -Dchar32_t=uint32_t" \
 #   --with-extra-cflags="$CPPFLAGS" \
@@ -61,6 +73,8 @@ cd openjdk
 # Let's print what's available
 # bash configure --help
 
+#   --with-freemarker-jar=$FREEMARKER \
+#   --with-toolchain-type=clang \
 bash ./configure \
     --openjdk-target=$TARGET_PHYS \
     --with-extra-cflags="$CFLAGS" \

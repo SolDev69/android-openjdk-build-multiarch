@@ -1,3 +1,6 @@
+#!/bin/bash
+set -e
+
 ## Usage:
 ## ./repackjre.sh [path_to_normal_jre_tarballs] [output_path]
 
@@ -24,13 +27,9 @@ compress_jars(){
 makearch () {
   echo "Making $2...";
   cd "$work";
-  tar xf $(find "$in" -name jre8-$2-*release.tar.xz) > /dev/null 2>&1;
-  mv release "$work1"/;
-  mv bin "$work1"/;
-  mkdir -p "$work1"/lib;
-  mv lib/$1 "$work1"/lib/;
-  mv lib/jexec "$work1"/lib/;
+  tar xf $(find "$in" -name jre8-$2-*release.tar.xz) > /dev/null;
   
+  # Remove unused stuff before moving it
   rm bin/rmid
   rm bin/keytool
   rm bin/rmiregistry
@@ -39,9 +38,17 @@ makearch () {
   rm bin/orbd
   rm bin/servertool
   
+  mv release "$work1"/;
+  mv bin "$work1"/;
+  mkdir -p "$work1"/lib;
+  mv lib/$1 "$work1"/lib/;
+  mv lib/jexec "$work1"/lib/;
+  
+
   
   
-  tar cJf bin-$2.tar.xz -C "$work1" . > /dev/null 2>&1;
+  
+  XZ_OPT="-6 --threads=0" tar cJf bin-$2.tar.xz -C "$work1" . > /dev/null 2>&1;
   mv bin-$2.tar.xz "$out"/;
   rm -rf "$work"/*; 
   rm -rf "$work1"/*; 
@@ -51,33 +58,17 @@ makearch () {
 makeuni () { 
   echo "Making universal...";
   cd "$work";
-  tar xf $(find "$in" -name jre8-arm64-*release.tar.xz) > /dev/null 2>&1; rm -rf bin;
+  tar xf $(find "$in" -name jre8-arm64-*release.tar.xz) > /dev/null; rm -rf bin;
   rm -rf lib/aarch64;
   rm lib/jexec;
   rm release;
   
   #find ./lib/ext ! -name 'zipfs.jar' -type f -exec rm -f {} +
   rm -rf lib/jfr
-  rm lib/jfr.jar
-  rm man/man1/servertool.1
-  rm man/man1/javaws.1
-  rm man/man1/policytool.1
-  rm man/man1/orbd.1
-  rm man/man1/rmiregistry.1
-  rm man/man1/keytool.1
-  rm man/man1/rmid.1
-  rm man/man1/tnameserv.1
-  rm man/ja_JP.UTF-8/man1/servertool.1
-  rm man/ja_JP.UTF-8/man1/javaws.1
-  rm man/ja_JP.UTF-8/man1/policytool.1
-  rm man/ja_JP.UTF-8/man1/orbd.1
-  rm man/ja_JP.UTF-8/man1/rmiregistry.1
-  rm man/ja_JP.UTF-8/man1/keytool.1
-  rm man/ja_JP.UTF-8/man1/rmid.1
-  rm man/ja_JP.UTF-8/man1/tnameserv.1
+  rm -rf man
   
   compress_jars
-  tar cJf universal.tar.xz * > /dev/null 2>&1;
+  XZ_OPT="-6 --threads=0" tar cJf universal.tar.xz * > /dev/null 2>&1;
   mv universal.tar.xz "$out"/;
   rm -rf "$work"/*;
 }
